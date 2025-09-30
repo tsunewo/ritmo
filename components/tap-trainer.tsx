@@ -9,7 +9,7 @@ import {
   scoreCatalog,
   totalDurationMs,
 } from "@/lib/score/sampleScores";
-import { evaluateAttempt, type ScoreSummary } from "@/lib/scoring/evaluate";
+import { evaluateAttempt, type NoteResultStatus, type ScoreSummary } from "@/lib/scoring/evaluate";
 
 const TOLERANCE_MS = 80;
 
@@ -31,6 +31,16 @@ export function TapTrainer() {
   const [tapCount, setTapCount] = useState(0);
   const [summary, setSummary] = useState<ScoreSummary | null>(null);
   const [enableBeams, setEnableBeams] = useState(true);
+
+  const noteStatuses = useMemo(() => {
+    if (!summary) {
+      return undefined;
+    }
+    return summary.noteResults.reduce((acc, result) => {
+      acc[result.index] = result.status;
+      return acc;
+    }, {} as Record<number, NoteResultStatus>);
+  }, [summary]);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const countInIntervalRef = useRef<number | null>(null);
@@ -262,7 +272,11 @@ export function TapTrainer() {
             </div>
           </dl>
         </header>
-        <ScoreViewer score={currentScore} enableBeams={enableBeams} />
+        <ScoreViewer
+          score={currentScore}
+          enableBeams={enableBeams}
+          noteStatuses={noteStatuses}
+        />
       </section>
 
       <section className="rounded-2xl border border-neutral-200/80 bg-white/80 p-6 shadow-sm backdrop-blur-sm dark:border-neutral-700/60 dark:bg-neutral-900/70">
