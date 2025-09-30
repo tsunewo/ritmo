@@ -31,16 +31,7 @@ export function TapTrainer() {
   const [tapCount, setTapCount] = useState(0);
   const [summary, setSummary] = useState<ScoreSummary | null>(null);
   const [enableBeams, setEnableBeams] = useState(true);
-
-  const noteStatuses = useMemo(() => {
-    if (!summary) {
-      return undefined;
-    }
-    return summary.noteResults.reduce((acc, result) => {
-      acc[result.index] = result.status;
-      return acc;
-    }, {} as Record<number, NoteResultStatus>);
-  }, [summary]);
+  const [noteStatuses, setNoteStatuses] = useState<Record<number, NoteResultStatus>>({});
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const countInIntervalRef = useRef<number | null>(null);
@@ -49,6 +40,9 @@ export function TapTrainer() {
   const sessionStartRef = useRef<number | null>(null);
   const tapsRef = useRef<number[]>([]);
   const hasFinalisedRef = useRef(false);
+  const noteStatusesRef = useRef<Record<number, NoteResultStatus>>({});
+  const matchedNotesRef = useRef<boolean[]>([]);
+  const noteTimeoutsRef = useRef<number[]>([]);
 
   const getAudioContext = useCallback(() => {
     if (!audioContextRef.current) {
@@ -71,6 +65,11 @@ export function TapTrainer() {
     oscillator.stop(time + 0.1);
   }, [getAudioContext]);
 
+  const clearNoteTimeouts = useCallback(() => {
+    noteTimeoutsRef.current.forEach((id) => window.clearTimeout(id));
+    noteTimeoutsRef.current = [];
+  }, []);
+
   const clearLoopingTimers = useCallback(() => {
     if (countInIntervalRef.current !== null) {
       window.clearInterval(countInIntervalRef.current);
@@ -84,6 +83,24 @@ export function TapTrainer() {
       window.clearTimeout(stopTimeoutRef.current);
       stopTimeoutRef.current = null;
     }
+    clearNoteTimeouts();
+  }, [clearNoteTimeouts]);
+
+  const resetLiveTracking = useCallback(() => {
+    clearNoteTimeouts();
+    matchedNotesRef.current = new Array(expectedOnsets.length).fill(false);
+    noteStatusesRef.current = {};
+    setNoteStatuses({});
+  }, [clearNoteTimeouts, expectedOnsets.length]);
+
+  useEffect(() => {
+    resetLiveTracking();
+  }, [currentScore.id, resetLiveTracking]);
+
+  const assignNoteStatus = useCallback((index: number, status: NoteResultStatus) => {
+    const next = { ...noteStatusesRef.current, [index]: status };
+    noteStatusesRef.current = next;
+    setNoteStatuses(next);
   }, []);
 
   const finaliseSession = useCallback(() => {
@@ -97,6 +114,13 @@ export function TapTrainer() {
     const taps = [...tapsRef.current];
     const report = evaluateAttempt(expectedOnsets, taps, TOLERANCE_MS);
     setSummary(report);
+    const nextStatuses = report.noteResults.reduce<Record<number, NoteResultStatus>>((acc, result) => {
+      acc[result.index] = result.status;
+      return acc;
+    }, {});
+    noteStatusesRef.current = nextStatuses;
+    setNoteStatuses(nextStatuses);
+    matchedNotesRef.current = report.noteResults.map((result) => result.status === "ok");
   }, [clearLoopingTimers, expectedOnsets]);
 
   const startPlaying = useCallback(() => {
@@ -106,6 +130,16 @@ export function TapTrainer() {
     hasFinalisedRef.current = false;
     triggerClick(false);
 
+    clearNoteTimeouts();
+    expectedOnsets.forEach((event, index) => {
+      const timeoutId = window.setTimeout(() => {
+        if (!matchedNotesRef.current[index] && !hasFinalisedRef.current) {
+          assignNoteStatus(index, "ng");
+        }
+      }, event.onsetMs + TOLERANCE_MS);
+      noteTimeoutsRef.current.push(timeoutId);
+    });
+
     metronomeIntervalRef.current = window.setInterval(() => {
       triggerClick(false);
     }, beatDurationMs);
@@ -113,7 +147,7 @@ export function TapTrainer() {
     stopTimeoutRef.current = window.setTimeout(() => {
       finaliseSession();
     }, sessionLengthMs + beatDurationMs);
-  }, [beatDurationMs, finaliseSession, sessionLengthMs, triggerClick]);
+  }, [assignNoteStatus, beatDurationMs, clearNoteTimeouts, expectedOnsets, finaliseSession, sessionLengthMs, triggerClick]);
 
   const handleStart = useCallback(async () => {
     if (phase === "count-in" || phase === "playing") {
@@ -123,6 +157,7 @@ export function TapTrainer() {
     clearLoopingTimers();
     setSummary(null);
     setTapCount(0);
+    resetLiveTracking();
     hasFinalisedRef.current = false;
     tapsRef.current = [];
     sessionStartRef.current = null;
@@ -146,7 +181,7 @@ export function TapTrainer() {
       triggerClick(true);
       beatsPassed += 1;
     }, beatDurationMs);
-  }, [beatDurationMs, clearLoopingTimers, countInBeats, getAudioContext, phase, startPlaying, triggerClick]);
+  }, [beatDurationMs, clearLoopingTimers, countInBeats, getAudioContext, phase, resetLiveTracking, startPlaying, triggerClick]);
 
   const handleTap = useCallback(() => {
     if (phase !== "playing" || sessionStartRef.current === null) {
@@ -155,7 +190,25 @@ export function TapTrainer() {
     const offset = performance.now() - sessionStartRef.current;
     tapsRef.current = [...tapsRef.current, offset];
     setTapCount((prev) => prev + 1);
-  }, [phase]);
+    let bestIndex = -1;
+    let bestDelta = Number.POSITIVE_INFINITY;
+
+    expectedOnsets.forEach((expected, index) => {
+      if (matchedNotesRef.current[index]) {
+        return;
+      }
+      const diff = Math.abs(expected.onsetMs - offset);
+      if (diff < bestDelta) {
+        bestDelta = diff;
+        bestIndex = index;
+      }
+    });
+
+    if (bestIndex !== -1 && bestDelta <= TOLERANCE_MS) {
+      matchedNotesRef.current[bestIndex] = true;
+      assignNoteStatus(bestIndex, "ok");
+    }
+  }, [assignNoteStatus, expectedOnsets, phase]);
 
   const handleReset = useCallback(() => {
     clearLoopingTimers();
@@ -165,7 +218,8 @@ export function TapTrainer() {
     setPhase("idle");
     setSummary(null);
     setTapCount(0);
-  }, [clearLoopingTimers]);
+    resetLiveTracking();
+  }, [clearLoopingTimers, resetLiveTracking]);
 
   const handleStop = useCallback(() => {
     if (phase === "idle") {
