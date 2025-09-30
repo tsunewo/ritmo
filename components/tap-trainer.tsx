@@ -30,6 +30,7 @@ export function TapTrainer() {
   const [phase, setPhase] = useState<"idle" | "count-in" | "playing" | "finished">("idle");
   const [tapCount, setTapCount] = useState(0);
   const [summary, setSummary] = useState<ScoreSummary | null>(null);
+  const [enableBeams, setEnableBeams] = useState(true);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const countInIntervalRef = useRef<number | null>(null);
@@ -204,7 +205,7 @@ export function TapTrainer() {
             {currentScore.title}
           </h1>
           <p className="text-sm text-neutral-600 dark:text-neutral-400">{currentScore.description}</p>
-          <div className="pt-2">
+          <div className="pt-2 space-y-2">
             <label className="flex w-full items-center gap-3 text-sm text-neutral-600 dark:text-neutral-300">
               <span className="whitespace-nowrap text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                 パターン選択
@@ -220,6 +221,17 @@ export function TapTrainer() {
                   </option>
                 ))}
               </select>
+            </label>
+            <label className="flex w-full items-center justify-between rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-600 transition dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200">
+              <span className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                ビーム（拍単位）
+              </span>
+              <input
+                type="checkbox"
+                checked={enableBeams}
+                onChange={(event) => setEnableBeams(event.target.checked)}
+                className="h-4 w-4 rounded border-neutral-400 text-emerald-500 focus:ring-emerald-300"
+              />
             </label>
           </div>
           <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm text-neutral-600 dark:text-neutral-300">
@@ -250,7 +262,7 @@ export function TapTrainer() {
             </div>
           </dl>
         </header>
-        <ScoreViewer score={currentScore} />
+        <ScoreViewer score={currentScore} enableBeams={enableBeams} />
       </section>
 
       <section className="rounded-2xl border border-neutral-200/80 bg-white/80 p-6 shadow-sm backdrop-blur-sm dark:border-neutral-700/60 dark:bg-neutral-900/70">

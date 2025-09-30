@@ -6,6 +6,7 @@ import type { RhythmScore } from "@/lib/score/types";
 
 export type ScoreViewerProps = {
   score: RhythmScore;
+  enableBeams?: boolean;
 };
 
 type VexFactory = import("vexflow").Factory;
@@ -19,7 +20,7 @@ const DEFAULT_SIZE: RenderSize = { width: 520, height: 180 };
 
 const BEAMABLE_DURATIONS = new Set(["8", "16", "32", "64"]);
 
-export function ScoreViewer({ score }: ScoreViewerProps) {
+export function ScoreViewer({ score, enableBeams = true }: ScoreViewerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const reactId = useId();
   const elementId = useMemo(() => `vf-${reactId.replace(/[:]/g, "")}`, [reactId]);
@@ -64,44 +65,46 @@ export function ScoreViewer({ score }: ScoreViewerProps) {
       const notes = vf.notes(voiceNotation, { time: timeSignature });
       const voice = vf.voice(notes, { time: timeSignature });
 
-      const beamGroups: Array<typeof notes> = [];
-      let currentGroup: typeof notes = [];
-      let currentBeatIndex: number | null = null;
+      if (enableBeams) {
+        const beamGroups: Array<typeof notes> = [];
+        let currentGroup: typeof notes = [];
+        let currentBeatIndex: number | null = null;
 
-      const flushGroup = () => {
-        if (currentGroup.length > 1) {
-          beamGroups.push([...currentGroup]);
-        }
-        currentGroup = [];
-      };
+        const flushGroup = () => {
+          if (currentGroup.length > 1) {
+            beamGroups.push([...currentGroup]);
+          }
+          currentGroup = [];
+        };
 
-      notes.forEach((note, index) => {
-        const duration = note.getDuration();
-        const isBeamable = BEAMABLE_DURATIONS.has(duration);
-        const event = events?.[index];
-        const beatIndex = event ? Math.floor(event.beat) : null;
+        notes.forEach((note, index) => {
+          const duration = note.getDuration();
+          const isBeamable = BEAMABLE_DURATIONS.has(duration);
+          const event = events?.[index];
+          const beatIndex = event ? Math.floor(event.beat) : null;
 
-        if (!isBeamable || beatIndex === null) {
-          flushGroup();
-          currentBeatIndex = beatIndex;
-          return;
-        }
+          if (!isBeamable || beatIndex === null) {
+            flushGroup();
+            currentBeatIndex = beatIndex;
+            return;
+          }
 
-        if (currentBeatIndex === null || beatIndex === currentBeatIndex) {
-          currentGroup.push(note);
-          currentBeatIndex = beatIndex;
-        } else {
-          flushGroup();
-          currentGroup.push(note);
-          currentBeatIndex = beatIndex;
-        }
-      });
+          if (currentBeatIndex === null || beatIndex === currentBeatIndex) {
+            currentGroup.push(note);
+            currentBeatIndex = beatIndex;
+          } else {
+            flushGroup();
+            currentGroup.push(note);
+            currentBeatIndex = beatIndex;
+          }
+        });
 
-      flushGroup();
+        flushGroup();
 
-      beamGroups.forEach((group) => {
-        vf.beam(group);
-      });
+        beamGroups.forEach((group) => {
+          vf.beam(group);
+        });
+      }
 
       system
         .addStave({
@@ -127,7 +130,7 @@ export function ScoreViewer({ score }: ScoreViewerProps) {
         container.innerHTML = "";
       }
     };
-  }, [elementId, events, score.id, timeSignature, voiceNotation]);
+  }, [elementId, enableBeams, events, score.id, timeSignature, voiceNotation]);
 
   return (
     <div
