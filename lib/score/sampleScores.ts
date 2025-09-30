@@ -49,7 +49,53 @@ export const sixteenthDriveDrill: RhythmScore = {
   },
 };
 
-export const scoreCatalog: RhythmScore[] = [eighthNoteDrill, quarterAccentDrill, sixteenthDriveDrill];
+export const quarterEighthMixDrill: RhythmScore = {
+  id: "rh_004",
+  title: "4分+8分ミックス",
+  description: "4分と8分を交互に切り替えながら拍の切り替え感を掴む練習です。",
+  tempoBpm: 70,
+  timeSignature: { numerator: 4, denominator: 4 },
+  events: [
+    { beat: 0, durationBeats: 1 },
+    { beat: 1, durationBeats: 0.5 },
+    { beat: 1.5, durationBeats: 0.5 },
+    { beat: 2, durationBeats: 1 },
+    { beat: 3, durationBeats: 0.5 },
+    { beat: 3.5, durationBeats: 0.5 },
+  ],
+  vexflow: {
+    timeSignature: "4/4",
+    voice: "a4/4, a4/8, a4/8, a4/4, a4/8, a4/8",
+  },
+};
+
+export const backbeatGrooveDrill: RhythmScore = {
+  id: "rh_005",
+  title: "バックステップ・グルーヴ",
+  description: "2拍目と4拍目に8分裏を絡めたシンプルなグルーヴ練習です。",
+  tempoBpm: 80,
+  timeSignature: { numerator: 4, denominator: 4 },
+  events: [
+    { beat: 0, durationBeats: 0.5 },
+    { beat: 0.5, durationBeats: 0.5 },
+    { beat: 1, durationBeats: 1 },
+    { beat: 2, durationBeats: 0.5 },
+    { beat: 2.5, durationBeats: 0.5 },
+    { beat: 3, durationBeats: 1 },
+  ],
+  vexflow: {
+    timeSignature: "4/4",
+    voice: "a4/8, a4/8, a4/4, a4/8, a4/8, a4/4",
+  },
+};
+
+export const scoreCatalog: RhythmScore[] = [
+  eighthNoteDrill,
+  quarterAccentDrill,
+  sixteenthDriveDrill,
+  quarterEighthMixDrill,
+  backbeatGrooveDrill,
+];
 
 export const defaultScoreId = scoreCatalog[0].id;
 

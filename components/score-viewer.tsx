@@ -2,9 +2,10 @@
 
 import { useEffect, useId, useMemo, useRef } from "react";
 
+import type { RhythmScore } from "@/lib/score/types";
+
 export type ScoreViewerProps = {
-  voiceNotation: string;
-  timeSignature: string;
+  score: RhythmScore;
 };
 
 type VexFactory = import("vexflow").Factory;
@@ -16,10 +17,16 @@ type RenderSize = {
 
 const DEFAULT_SIZE: RenderSize = { width: 520, height: 180 };
 
-export function ScoreViewer({ voiceNotation, timeSignature }: ScoreViewerProps) {
+const BEAMABLE_DURATIONS = new Set(["8", "16", "32", "64"]);
+
+export function ScoreViewer({ score }: ScoreViewerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const reactId = useId();
   const elementId = useMemo(() => `vf-${reactId.replace(/[:]/g, "")}`, [reactId]);
+  const { vexflow, events } = score;
+
+  const voiceNotation = vexflow.voice;
+  const timeSignature = vexflow.timeSignature;
 
   useEffect(() => {
     let isMounted = true;
@@ -48,14 +55,60 @@ export function ScoreViewer({ voiceNotation, timeSignature }: ScoreViewerProps) 
           height: DEFAULT_SIZE.height,
         },
       });
-      const score = factory.EasyScore();
+      const vf = factory.EasyScore();
+      vf.set({ time: timeSignature, stem: "auto" });
       const system = factory.System({
         width: DEFAULT_SIZE.width - 40,
       });
 
-      system.addStave({
-        voices: [score.voice(score.notes(voiceNotation, { time: timeSignature }))],
+      const notes = vf.notes(voiceNotation, { time: timeSignature });
+      const voice = vf.voice(notes, { time: timeSignature });
+
+      const beamGroups: Array<typeof notes> = [];
+      let currentGroup: typeof notes = [];
+      let currentBeatIndex: number | null = null;
+
+      const flushGroup = () => {
+        if (currentGroup.length > 1) {
+          beamGroups.push([...currentGroup]);
+        }
+        currentGroup = [];
+      };
+
+      notes.forEach((note, index) => {
+        const duration = note.getDuration();
+        const isBeamable = BEAMABLE_DURATIONS.has(duration);
+        const event = events?.[index];
+        const beatIndex = event ? Math.floor(event.beat) : null;
+
+        if (!isBeamable || beatIndex === null) {
+          flushGroup();
+          currentBeatIndex = beatIndex;
+          return;
+        }
+
+        if (currentBeatIndex === null || beatIndex === currentBeatIndex) {
+          currentGroup.push(note);
+          currentBeatIndex = beatIndex;
+        } else {
+          flushGroup();
+          currentGroup.push(note);
+          currentBeatIndex = beatIndex;
+        }
       });
+
+      flushGroup();
+
+      beamGroups.forEach((group) => {
+        vf.beam(group);
+      });
+
+      system
+        .addStave({
+          voices: [voice],
+        })
+        .addClef("treble")
+        .addTimeSignature(timeSignature);
 
       factory.draw();
     };
@@ -65,14 +118,16 @@ export function ScoreViewer({ voiceNotation, timeSignature }: ScoreViewerProps) 
     return () => {
       isMounted = false;
       if (factory) {
-        factory.getContext().svg?.remove?.();
+        const context = factory.getContext();
+        const svgElement = (context as unknown as { svg?: SVGElement }).svg;
+        svgElement?.remove?.();
         factory = null;
       }
       if (container) {
         container.innerHTML = "";
       }
     };
-  }, [elementId, timeSignature, voiceNotation]);
+  }, [elementId, events, score.id, timeSignature, voiceNotation]);
 
   return (
     <div

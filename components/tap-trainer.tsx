@@ -250,10 +250,7 @@ export function TapTrainer() {
             </div>
           </dl>
         </header>
-        <ScoreViewer
-          voiceNotation={currentScore.vexflow.voice}
-          timeSignature={currentScore.vexflow.timeSignature}
-        />
+        <ScoreViewer score={currentScore} />
       </section>
 
       <section className="rounded-2xl border border-neutral-200/80 bg-white/80 p-6 shadow-sm backdrop-blur-sm dark:border-neutral-700/60 dark:bg-neutral-900/70">
