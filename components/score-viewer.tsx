@@ -57,16 +57,17 @@ export function ScoreViewer({ score, enableBeams = true, noteStatuses }: ScoreVi
         return;
       }
 
-      factory = new Factory({
+      const createdFactory = new Factory({
         renderer: {
           elementId,
           width: DEFAULT_SIZE.width,
           height: DEFAULT_SIZE.height,
         },
       });
-      const vf = factory.EasyScore();
+      factory = createdFactory;
+      const vf = createdFactory.EasyScore();
       vf.set({ time: timeSignature, stem: "auto" });
-      const system = factory.System({
+      const system = createdFactory.System({
         width: DEFAULT_SIZE.width - 40,
       });
 
@@ -95,7 +96,6 @@ export function ScoreViewer({ score, enableBeams = true, noteStatuses }: ScoreVi
             ? NOTE_STYLE_NG
             : NOTE_STYLE_DEFAULT;
         note.setStyle(style);
-        note.setStemStyle(style);
 
         if (!enableBeams) {
           return;
@@ -128,7 +128,7 @@ export function ScoreViewer({ score, enableBeams = true, noteStatuses }: ScoreVi
         flushGroup();
 
         beamGroups.forEach((group) => {
-          const beam = factory.Beam({ notes: group.notes });
+          const beam = createdFactory.Beam({ notes: group.notes });
           const statuses = group.indices
             .map((idx) => noteStatuses?.[idx])
             .filter((value): value is NoteResultStatus => Boolean(value));
@@ -148,15 +148,16 @@ export function ScoreViewer({ score, enableBeams = true, noteStatuses }: ScoreVi
         .addClef("treble")
         .addTimeSignature(timeSignature);
 
-      factory.draw();
+      createdFactory.draw();
     };
 
     render();
 
     return () => {
       isMounted = false;
-      if (factory) {
-        const context = factory.getContext();
+      const existingFactory = factory;
+      if (existingFactory) {
+        const context = existingFactory.getContext();
         const svgElement = (context as unknown as { svg?: SVGElement }).svg;
         svgElement?.remove?.();
         factory = null;
