@@ -1,103 +1,58 @@
-import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-12 px-4 pb-16 pt-16 sm:px-6 lg:px-8">
+      <section className="space-y-4">
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-neutral-500">
+          ブラウザで完結するリズム練習ツール
+        </p>
+        <h1 className="text-4xl font-bold text-neutral-900 dark:text-neutral-100 sm:text-5xl">
+          Ritmo MVP デモ
+        </h1>
+        <p className="max-w-2xl text-lg leading-relaxed text-neutral-600 dark:text-neutral-300">
+          表示された楽譜のリズムをメトロノームのテンポで叩き、各音符がOKかNGかをその場で確認できるサンプル実装です。
+          カウントインの後に1小節分の課題が流れ、スペースキーでもタップできます。
+        </p>
+        <div className="flex flex-wrap gap-3 pt-4">
+          <Link
+            href="/play"
+            className="rounded-full bg-neutral-900 px-8 py-3 text-sm font-semibold text-white transition hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
+            デモを始める
+          </Link>
           <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            href="https://tonejs.github.io/"
             target="_blank"
-            rel="noopener noreferrer"
+            rel="noreferrer"
+            className="rounded-full border border-neutral-300 px-5 py-3 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-100 dark:border-neutral-600 dark:text-neutral-200 dark:hover:bg-neutral-800"
           >
-            Read our docs
+            仕組みの詳細を見る
           </a>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      </section>
+      <section className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div className="rounded-2xl border border-neutral-200/80 bg-white/80 p-6 shadow-sm backdrop-blur-sm dark:border-neutral-700/60 dark:bg-neutral-900/70">
+          <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">MVPに含む要素</h2>
+          <ul className="mt-3 space-y-2 text-sm text-neutral-600 dark:text-neutral-300">
+            <li>・譜面のSVG表示（VexFlow）</li>
+            <li>・メトロノーム＆カウントイン（Web Audio）</li>
+            <li>・タップ入力（クリック/スペース）</li>
+            <li>・各音符のOK/NG判定</li>
+            <li>・OK/NG集計と許容誤差の確認</li>
+          </ul>
+        </div>
+        <div className="rounded-2xl border border-neutral-200/80 bg-white/80 p-6 shadow-sm backdrop-blur-sm dark:border-neutral-700/60 dark:bg-neutral-900/70">
+          <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">次フェーズのアイデア</h2>
+          <ul className="mt-3 space-y-2 text-sm text-neutral-600 dark:text-neutral-300">
+            <li>・レイテンシ較正と端末プロファイル保存</li>
+            <li>・課題の複数バリエーションと難易度設定</li>
+            <li>・手拍子検出用AudioWorkletの導入</li>
+            <li>・オフライン対応PWA化</li>
+            <li>・学習履歴の可視化</li>
+          </ul>
+        </div>
+      </section>
+    </main>
   );
 }
