@@ -14,7 +14,7 @@ type RenderSize = {
   height: number;
 };
 
-const DEFAULT_SIZE: RenderSize = { width: 420, height: 160 };
+const DEFAULT_SIZE: RenderSize = { width: 520, height: 180 };
 
 export function ScoreViewer({ voiceNotation, timeSignature }: ScoreViewerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);

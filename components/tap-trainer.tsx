@@ -1,21 +1,31 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ScoreViewer } from "@/components/score-viewer";
-import { buildExpectedOnsets, sampleScore, totalDurationMs } from "@/lib/score/sampleScores";
+import {
+  buildExpectedOnsets,
+  defaultScoreId,
+  scoreCatalog,
+  totalDurationMs,
+} from "@/lib/score/sampleScores";
 import { evaluateAttempt, type ScoreSummary } from "@/lib/scoring/evaluate";
 
-const COUNT_IN_BEATS = sampleScore.timeSignature.numerator;
 const TOLERANCE_MS = 80;
 
 export function TapTrainer() {
-  const beatDurationMs = useMemo(
-    () => (60_000 / sampleScore.tempoBpm) * (4 / sampleScore.timeSignature.denominator),
-    [],
-  );
-  const expectedOnsets = useMemo(() => buildExpectedOnsets(sampleScore), []);
-  const sessionLengthMs = useMemo(() => totalDurationMs(sampleScore), []);
+  const [selectedScoreId, setSelectedScoreId] = useState<string>(defaultScoreId);
+  const currentScore = useMemo(() => {
+    return scoreCatalog.find((score) => score.id === selectedScoreId) ?? scoreCatalog[0];
+  }, [selectedScoreId]);
+
+  const beatDurationMs = useMemo(() => {
+    return (60_000 / currentScore.tempoBpm) * (4 / currentScore.timeSignature.denominator);
+  }, [currentScore]);
+
+  const expectedOnsets = useMemo(() => buildExpectedOnsets(currentScore), [currentScore]);
+  const sessionLengthMs = useMemo(() => totalDurationMs(currentScore), [currentScore]);
+  const countInBeats = currentScore.timeSignature.numerator;
 
   const [phase, setPhase] = useState<"idle" | "count-in" | "playing" | "finished">("idle");
   const [tapCount, setTapCount] = useState(0);
@@ -83,7 +93,7 @@ export function TapTrainer() {
     tapsRef.current = [];
     sessionStartRef.current = performance.now();
     hasFinalisedRef.current = false;
-    triggerClick(true);
+    triggerClick(false);
 
     metronomeIntervalRef.current = window.setInterval(() => {
       triggerClick(false);
@@ -116,7 +126,7 @@ export function TapTrainer() {
     let beatsPassed = 1;
 
     countInIntervalRef.current = window.setInterval(() => {
-      if (beatsPassed >= COUNT_IN_BEATS) {
+      if (beatsPassed >= countInBeats) {
         clearLoopingTimers();
         startPlaying();
         return;
@@ -125,7 +135,7 @@ export function TapTrainer() {
       triggerClick(true);
       beatsPassed += 1;
     }, beatDurationMs);
-  }, [beatDurationMs, clearLoopingTimers, getAudioContext, phase, startPlaying, triggerClick]);
+  }, [beatDurationMs, clearLoopingTimers, countInBeats, getAudioContext, phase, startPlaying, triggerClick]);
 
   const handleTap = useCallback(() => {
     if (phase !== "playing" || sessionStartRef.current === null) {
@@ -136,13 +146,6 @@ export function TapTrainer() {
     setTapCount((prev) => prev + 1);
   }, [phase]);
 
-  const handleStop = useCallback(() => {
-    if (phase === "idle") {
-      return;
-    }
-    finaliseSession();
-  }, [finaliseSession, phase]);
-
   const handleReset = useCallback(() => {
     clearLoopingTimers();
     hasFinalisedRef.current = false;
@@ -152,6 +155,25 @@ export function TapTrainer() {
     setSummary(null);
     setTapCount(0);
   }, [clearLoopingTimers]);
+
+  const handleStop = useCallback(() => {
+    if (phase === "idle") {
+      return;
+    }
+    finaliseSession();
+  }, [finaliseSession, phase]);
+
+  const handleScoreChange = useCallback(
+    (event: ChangeEvent<HTMLSelectElement>) => {
+      const nextId = event.target.value;
+      if (nextId === selectedScoreId) {
+        return;
+      }
+      handleReset();
+      setSelectedScoreId(nextId);
+    },
+    [handleReset, selectedScoreId],
+  );
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -179,22 +201,40 @@ export function TapTrainer() {
         <header className="mb-4 space-y-1">
           <p className="text-sm text-neutral-500 dark:text-neutral-400">課題</p>
           <h1 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
-            {sampleScore.title}
+            {currentScore.title}
           </h1>
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">{sampleScore.description}</p>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">{currentScore.description}</p>
+          <div className="pt-2">
+            <label className="flex w-full items-center gap-3 text-sm text-neutral-600 dark:text-neutral-300">
+              <span className="whitespace-nowrap text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                パターン選択
+              </span>
+              <select
+                value={selectedScoreId}
+                onChange={handleScoreChange}
+                className="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm transition focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100"
+              >
+                {scoreCatalog.map((score) => (
+                  <option key={score.id} value={score.id}>
+                    {score.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
           <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm text-neutral-600 dark:text-neutral-300">
             <div>
               <dt className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                 テンポ
               </dt>
-              <dd>{sampleScore.tempoBpm} BPM</dd>
+              <dd>{currentScore.tempoBpm} BPM</dd>
             </div>
             <div>
               <dt className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                 拍子
               </dt>
               <dd>
-                {sampleScore.timeSignature.numerator}/{sampleScore.timeSignature.denominator}
+                {currentScore.timeSignature.numerator}/{currentScore.timeSignature.denominator}
               </dd>
             </div>
             <div>
@@ -211,8 +251,8 @@ export function TapTrainer() {
           </dl>
         </header>
         <ScoreViewer
-          voiceNotation={sampleScore.vexflow.voice}
-          timeSignature={sampleScore.vexflow.timeSignature}
+          voiceNotation={currentScore.vexflow.voice}
+          timeSignature={currentScore.vexflow.timeSignature}
         />
       </section>
 
